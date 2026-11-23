@@ -697,6 +697,55 @@ async function mascaraServidor(blob) {
   }
 }
 
+let workerIA = null, pedidoIA = 0;
+const modelosFalharam = new Set();
+function rodarBiRefNet(nome, pixels, N) {
+  if (!workerIA) workerIA = new Worker("recorte-worker.js", { type: "module" });
+  const id = ++pedidoIA;
+  return new Promise((ok, erro) => {
+    workerIA.onmessage = (e) => {
+      const m = e.data;
+      if (m.tipo === "progresso") return carregando(m.txt);
+      if (m.id !== id) return;
+      m.tipo === "ok" ? ok(m) : erro(new Error(m.erro));
+    };
+    workerIA.postMessage({ id, nome, pixels, N }, [pixels.buffer]);
+  });
+}
+
+async function mascaraBiRefNet(fonte) {
+  if (!navigator.gpu) throw new Error("sem WebGPU");
+  const N = 1024;
+  const c = novoCanvas(N, N);
+  const g = c.getContext("2d", { willReadFrequently: true });
+  g.fillStyle = "#fff";
+  g.fillRect(0, 0, N, N);
+  g.drawImage(fonte, 0, 0, N, N);
+  const px = g.getImageData(0, 0, N, N).data;
+  const media = [0.485, 0.456, 0.406], desvio = [0.229, 0.224, 0.225];
+  for (const nome of ["birefnet", "birefnet-lite"]) {
+    if (modelosFalharam.has(nome)) continue;
+    const f = new Float32Array(3 * N * N);
+    for (let i = 0; i < N * N; i++) for (let k = 0; k < 3; k++) f[k * N * N + i] = (px[i * 4 + k] / 255 - media[k]) / desvio[k];
+    try {
+      const r = await rodarBiRefNet(nome, f, N);
+      const mc = novoCanvas(N, N);
+      const img = new ImageData(N, N);
+      for (let i = 0; i < N * N; i++) {
+        img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = r.mascara[i];
+        img.data[i * 4 + 3] = 255;
+      }
+      mc.getContext("2d").putImageData(img, 0, 0);
+      return mc;
+    } catch (e) {
+      console.warn("BiRefNet", nome, "falhou:", e.message);
+      modelosFalharam.add(nome);
+      if (workerIA) { workerIA.terminate(); workerIA = null; }
+    }
+  }
+  throw new Error("BiRefNet indisponível");
+}
+
 async function mascaraNavegador(blob) {
   const lib = await carregarRemovedor();
   const res = await lib.removeBackground(blob, {
@@ -723,11 +772,18 @@ async function removerFundo() {
         console.warn("servidor de recorte falhou", e);
       }
     }
-    if (!mask) mask = await mascaraNavegador(blob);
+    if (!mask) {
+      try {
+        mask = await mascaraBiRefNet(fonte);
+      } catch {
+        mask = await mascaraNavegador(blob);
+      }
+    }
     // aplica a máscara (em escala de cinza) como transparência
     const w = fonte.width, h = fonte.height;
     const mc = novoCanvas(w, h);
     const gm = mc.getContext("2d", { willReadFrequently: true });
+    gm.imageSmoothingQuality = "high";
     gm.drawImage(mask, 0, 0, w, h);
     const md = gm.getImageData(0, 0, w, h).data;
     const c = clonar(fonte);
