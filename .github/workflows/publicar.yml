@@ -19,7 +19,7 @@ concurrency:
 jobs:
   publicar:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -42,7 +42,7 @@ jobs:
       - name: Preparar modelo de recorte (BiRefNet)
         if: steps.cache-modelo.outputs.cache-hit != 'true'
         run: |
-          pip install -q onnx==1.17.0 onnxruntime==1.20.1 numpy
+          pip install -q onnx==1.17.0
           python scripts/preparar-modelo.py _modelo
       - name: Montar site
         run: |

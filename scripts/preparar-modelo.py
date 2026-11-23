@@ -58,16 +58,6 @@ for nome in quais:
     maior = max((len(x.input) + len(x.output) for x in m.graph.node), default=0)
     print(f"{nome}: {n} Concats divididos; maior nó agora tem {maior} entradas+saídas", flush=True)
     dados = m.SerializeToString()
-    # confere que o modelo ajustado dá o mesmo resultado que o original
-    try:
-        import numpy as np, onnxruntime as ort
-        x = np.random.RandomState(0).randn(1, 3, 1024, 1024).astype(np.float32)
-        so = ort.SessionOptions(); so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_DISABLE_ALL
-        a = ort.InferenceSession(orig, so).run(None, {m.graph.input[0].name: x})[-1]
-        b = ort.InferenceSession(dados, so).run(None, {m.graph.input[0].name: x})[-1]
-        print(nome, "diferença máxima após ajuste:", float(np.abs(a.astype(np.float32) - b.astype(np.float32)).max()), flush=True)
-    except Exception as e:
-        print("aviso: não consegui conferir no CPU:", e, flush=True)
     partes = []
     for i in range(0, len(dados), PARTE):
         p = f"parte-{i // PARTE:02d}.bin"
