@@ -30,6 +30,20 @@ jobs:
           node-version: 22
       - name: Buscar banners e selos do site
         run: node scripts/atualizar-site.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Cache do modelo de recorte
+        id: cache-modelo
+        uses: actions/cache@v4
+        with:
+          path: _modelo
+          key: modelo-${{ hashFiles('scripts/preparar-modelo.py') }}
+      - name: Preparar modelo de recorte (BiRefNet)
+        if: steps.cache-modelo.outputs.cache-hit != 'true'
+        run: |
+          pip install -q onnx==1.17.0 onnxruntime==1.20.1 numpy
+          python scripts/preparar-modelo.py _modelo
       - name: Montar site
         run: |
           mkdir -p _site/data
@@ -38,7 +52,9 @@ jobs:
           sed -i "s#app.js\"#app.js?v=$V\"#; s#estilo.css\"#estilo.css?v=$V\"#" _site/index.html
           grep -o 'app.js?v=[a-z0-9]*' _site/index.html
           cp data/site.json _site/data/
+          cp -r _modelo _site/modelo
           touch _site/.nojekyll
+          du -sh _site
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
