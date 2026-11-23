@@ -6,13 +6,20 @@ const CDN = "https://cdn.shopify.com/s/files/1/0736/4886/5530/files/";
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36" };
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+const falhas = {};
 async function pegar(url, tipo = "text") {
-  for (let t = 0; t < 3; t++) {
+  for (let t = 0; t < 5; t++) {
     try {
       const r = await fetch(url, { headers: UA });
-      if (r.ok) return tipo === "json" ? r.json() : tipo === "buf" ? Buffer.from(await r.arrayBuffer()) : r.text();
-    } catch {}
-    await espera(1500 * (t + 1));
+      if (r.ok) return tipo === "json" ? r.json() : r.text();
+      falhas[r.status] = (falhas[r.status] || 0) + 1;
+      const ra = +r.headers.get("retry-after");
+      await espera(ra ? ra * 1000 : 3000 * 2 ** t);
+      continue;
+    } catch (e) {
+      falhas[e.message] = (falhas[e.message] || 0) + 1;
+    }
+    await espera(3000 * 2 ** t);
   }
   return null;
 }
@@ -38,7 +45,7 @@ const achados = new Map(); // nome -> nº de páginas onde aparece
 for (const url of paginas) {
   const html = await pegar(url);
   new Set(nomes(html)).forEach((n) => achados.set(n, (achados.get(n) || 0) + 1));
-  await espera(300);
+  await espera(800);
 }
 (col?.collections || []).forEach((c) => {
   const n = c.image?.src?.split("/files/")[1]?.split("?")[0];
@@ -89,9 +96,19 @@ for (let i = 0; i < lista.length; i += 8) {
 // banners largos primeiro, depois os maiores
 imagens.sort((a, b) => ((b.w || 0) / (b.h || 1) >= 2) - ((a.w || 0) / (a.h || 1) >= 2) || (b.w || 0) * (b.h || 0) - (a.w || 0) * (a.h || 0));
 
-if (!imagens.length) {
-  console.error("Nenhuma imagem encontrada — mantendo o arquivo anterior.");
-  process.exit(0);
+console.log(`Produtos: ${deProduto.size} fotos · páginas: ${paginas.length} · achadas: ${achados.size} · válidas: ${imagens.length} · falhas: ${JSON.stringify(falhas)}`);
+if (imagens.length < 30) {
+  // o site não respondeu direito agora: mantém a última versão publicada em vez de zerar
+  const anterior = await fetch("https://bacetto.github.io/fotos-baianao/data/site.json?" + Date.now()).then((r) => r.json()).catch(() => null);
+  if (anterior?.imagens?.length) {
+    await writeFile("data/site.json", JSON.stringify(anterior));
+    console.log(`Mantida a versão anterior (${anterior.imagens.length} imagens).`);
+    process.exit(0);
+  }
+  if (!imagens.length) {
+    console.error("Nenhuma imagem encontrada e não há versão anterior.");
+    process.exit(1); // falha o job e não publica um painel vazio
+  }
 }
 await writeFile("data/site.json", JSON.stringify({ atualizado: new Date().toISOString(), imagens }, null, 0));
 console.log(`${imagens.length} imagens do site salvas (${deProduto.size} fotos de produto ignoradas, ${paginas.length} páginas lidas).`);
