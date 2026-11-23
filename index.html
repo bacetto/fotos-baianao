@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fotos Baianão</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23d6111a'/><text x='16' y='23' font-size='19' text-anchor='middle' fill='%23ffd200' font-family='Arial' font-weight='bold'>B</text></svg>">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<header class="topo">
+  <div class="marca"><span class="logo">B</span><div><b>Fotos Baianão</b><small>Fotos do site prontas pro marketing</small></div></div>
+  <nav class="abas">
+    <button data-aba="produtos" class="ativa">Produtos</button>
+    <button data-aba="site">Banners e selos do site</button>
+  </nav>
+</header>
+
+<main>
+  <section id="aba-produtos">
+    <div class="filtros">
+      <input id="busca" type="search" placeholder="Buscar produto: geladeira electrolux, guarda-roupa demóbile, cama box casal..." autocomplete="off">
+      <select id="tipo"><option value="">Todas as categorias</option></select>
+      <select id="marca"><option value="">Todas as marcas</option></select>
+    </div>
+    <div id="status" class="status">Carregando o catálogo do site…</div>
+    <div id="lista" class="grade"></div>
+    <button id="mais" class="mais" hidden>Mostrar mais</button>
+  </section>
+
+  <section id="aba-site" hidden>
+    <div class="filtros">
+      <input id="busca-site" type="search" placeholder="Filtrar por nome do arquivo: banner, selo, cartao, pix...">
+      <select id="tam-site">
+        <option value="">Todos os tamanhos</option>
+        <option value="banner">Banners (largos)</option>
+        <option value="outros">Selos, ícones e outros</option>
+      </select>
+    </div>
+    <div id="status-site" class="status"></div>
+    <div id="lista-site" class="grade grade-site"></div>
+  </section>
+</main>
+
+<!-- Editor -->
+<div id="editor" class="modal" hidden>
+  <div class="caixa">
+    <header class="ed-topo">
+      <div><b id="ed-titulo">Foto</b><small id="ed-info"></small></div>
+      <button class="fechar" id="ed-fechar" title="Fechar">✕</button>
+    </header>
+    <div class="ed-corpo">
+      <div class="ed-palco">
+        <div class="ed-ferr">
+          <button data-modo="ver" class="ativa">👁 Ver</button>
+          <button data-modo="recortar">✂ Recortar área</button>
+          <button data-modo="apagar">🩹 Apagar marca/logo</button>
+          <button id="ed-fundo">🪄 Remover fundo</button>
+          <button id="ed-desfazer" disabled>↶ Desfazer</button>
+          <button id="ed-original">⟲ Voltar ao original</button>
+        </div>
+        <div id="ed-dica" class="dica"></div>
+        <div class="ed-area" id="ed-area">
+          <canvas id="ed-base"></canvas>
+          <canvas id="ed-over"></canvas>
+          <div id="ed-carregando" class="carregando" hidden><span class="giro"></span><span id="ed-carregando-txt">Processando…</span></div>
+        </div>
+        <div id="ed-apagar-ctl" class="ed-sub" hidden>
+          Pincel <input id="ed-pincel" type="range" min="5" max="120" value="30">
+          <button id="ed-aplicar-apagar" class="prim">Apagar área pintada</button>
+          <button id="ed-limpar-mask">Limpar pintura</button>
+        </div>
+        <div id="ed-recortar-ctl" class="ed-sub" hidden>
+          Arraste na imagem pra marcar a área.
+          <button id="ed-aplicar-recorte" class="prim">Recortar</button>
+          <button id="ed-recorte-fundo">Recortar e tirar fundo</button>
+        </div>
+      </div>
+      <aside class="ed-lado">
+        <label>Formato
+          <select id="ed-formato">
+            <option value="orig">Tamanho original</option>
+            <option value="1080x1080">Post quadrado 1080×1080</option>
+            <option value="1080x1350">Post feed 1080×1350 (4:5)</option>
+            <option value="1080x1920">Story / Reels 1080×1920</option>
+            <option value="1920x465">Banner site desktop 1920×465</option>
+            <option value="528x465">Banner site mobile 528×465</option>
+            <option value="1200x628">Banner Facebook/Google 1200×628</option>
+            <option value="800x800">Marketplace 800×800</option>
+            <option value="custom">Personalizado…</option>
+          </select>
+        </label>
+        <div id="ed-custom" class="lin" hidden>
+          <input id="ed-w" type="number" min="16" max="8000" value="1080"> × <input id="ed-h" type="number" min="16" max="8000" value="1080">
+        </div>
+        <label>Encaixe
+          <select id="ed-encaixe">
+            <option value="conter">Foto inteira (completa com fundo)</option>
+            <option value="preencher">Preencher (corta as sobras)</option>
+          </select>
+        </label>
+        <label>Margem em volta <input id="ed-margem" type="range" min="0" max="30" value="0"> <span id="ed-margem-v">0%</span></label>
+        <label>Fundo
+          <select id="ed-fundo-tipo">
+            <option value="orig">Sem fundo extra</option>
+            <option value="branco" selected>Branco</option>
+            <option value="transp">Transparente (PNG)</option>
+            <option value="cor">Cor…</option>
+          </select>
+        </label>
+        <input id="ed-cor" type="color" value="#d6111a" hidden>
+        <label>Arquivo
+          <select id="ed-tipo-arq">
+            <option value="png">PNG (melhor qualidade)</option>
+            <option value="jpg">JPG (mais leve)</option>
+            <option value="webp">WEBP</option>
+          </select>
+        </label>
+        <div class="previa"><canvas id="ed-previa"></canvas><small id="ed-previa-info"></small></div>
+        <button id="ed-baixar" class="prim grande">⬇ Baixar</button>
+        <button id="ed-copiar">Copiar imagem</button>
+        <p class="nota">As fotos vêm direto do site. Tudo é feito aqui no navegador, sem custo.</p>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<div id="aviso" class="aviso" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

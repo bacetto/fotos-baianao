@@ -1,0 +1,43 @@
+name: Atualizar e publicar
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 9,15,21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Buscar banners e selos do site
+        run: node scripts/atualizar-site.mjs
+      - name: Montar site
+        run: |
+          mkdir -p _site/data
+          cp index.html app.js estilo.css _site/
+          cp data/site.json _site/data/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

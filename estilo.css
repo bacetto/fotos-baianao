@@ -1,0 +1,71 @@
+*{box-sizing:border-box}
+:root{--verm:#d6111a;--amar:#ffd200;--fundo:#f4f5f7;--txt:#1d1f23;--cinza:#6b7280;--borda:#e3e5e8}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--fundo);color:var(--txt)}
+button,select,input{font:inherit}
+.topo{background:var(--verm);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 24px;flex-wrap:wrap;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px #0002}
+.marca{display:flex;align-items:center;gap:12px}
+.marca small{display:block;opacity:.85;font-size:12px}
+.logo{width:40px;height:40px;border-radius:10px;background:var(--amar);color:var(--verm);display:grid;place-items:center;font-weight:900;font-size:22px}
+.abas{display:flex;gap:6px}
+.abas button{background:#fff2;border:0;color:#fff;padding:9px 16px;border-radius:999px;cursor:pointer;font-weight:600}
+.abas button.ativa{background:#fff;color:var(--verm)}
+main{max-width:1400px;margin:0 auto;padding:20px 24px 60px}
+.filtros{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.filtros input{flex:1 1 360px;padding:12px 14px;border:1px solid var(--borda);border-radius:10px;background:#fff;font-size:15px}
+.filtros select{padding:11px 12px;border:1px solid var(--borda);border-radius:10px;background:#fff;max-width:260px}
+.status{color:var(--cinza);font-size:14px;margin:8px 0 14px}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.card{background:#fff;border:1px solid var(--borda);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.card .capa{aspect-ratio:1;background:#fff;display:grid;place-items:center;cursor:pointer;position:relative}
+.card .capa img{max-width:100%;max-height:100%;object-fit:contain}
+.card .qtd{position:absolute;top:8px;right:8px;background:#000a;color:#fff;font-size:12px;padding:3px 8px;border-radius:999px}
+.card .info{padding:10px 12px 4px;font-size:13.5px;line-height:1.3}
+.card .info b{display:block;font-weight:600;min-height:2.6em}
+.card .info small{color:var(--cinza)}
+.card .preco{color:var(--verm);font-weight:700;margin-top:4px}
+.miniaturas{display:flex;gap:6px;padding:8px 12px;overflow-x:auto}
+.miniaturas img{width:46px;height:46px;object-fit:contain;border:1px solid var(--borda);border-radius:6px;cursor:pointer;background:#fff;flex:none}
+.miniaturas img:hover{border-color:var(--verm)}
+.acoes{display:flex;gap:6px;padding:8px 12px 12px;margin-top:auto}
+.acoes button{flex:1;padding:8px;border-radius:8px;border:1px solid var(--borda);background:#fff;cursor:pointer;font-size:13px}
+.acoes button.prim,button.prim{background:var(--verm);border-color:var(--verm);color:#fff;font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+.mais{display:block;margin:24px auto;padding:12px 28px;border-radius:999px;border:1px solid var(--borda);background:#fff;cursor:pointer;font-weight:600}
+.mais[hidden]{display:none}
+.grade-site{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.grade-site .capa{aspect-ratio:16/9;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/16px 16px}
+.modal{position:fixed;inset:0;background:#000b;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal[hidden]{display:none}
+.caixa{background:#fff;border-radius:16px;width:min(1300px,100%);height:min(900px,100%);display:flex;flex-direction:column;overflow:hidden}
+.ed-topo{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--borda);gap:10px}
+.ed-topo small{display:block;color:var(--cinza);font-size:12px}
+.fechar{border:0;background:#f0f0f0;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;flex:none}
+.ed-corpo{flex:1;display:flex;min-height:0}
+.ed-palco{flex:1;display:flex;flex-direction:column;min-width:0;padding:12px;gap:8px}
+.ed-ferr{display:flex;gap:6px;flex-wrap:wrap}
+.ed-ferr button,.ed-sub button,.ed-lado button{padding:8px 12px;border-radius:8px;border:1px solid var(--borda);background:#fff;cursor:pointer;font-size:13px}
+.ed-ferr button.ativa{background:var(--txt);color:#fff;border-color:var(--txt)}
+.dica{font-size:13px;color:var(--cinza);min-height:18px}
+.ed-area{flex:1;position:relative;min-height:0;background:repeating-conic-gradient(#e9e9e9 0 25%,#fff 0 50%) 0 0/20px 20px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ed-area canvas{position:absolute;max-width:100%;max-height:100%}
+#ed-over{touch-action:none}
+.ed-sub{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
+.ed-sub[hidden]{display:none}
+.ed-lado{width:300px;border-left:1px solid var(--borda);padding:14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.ed-lado label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+.ed-lado select,.ed-lado input[type=number]{padding:8px;border:1px solid var(--borda);border-radius:8px;font-weight:400}
+.lin{display:flex;align-items:center;gap:6px}.lin input{width:100%}
+.lin[hidden]{display:none}
+.previa{background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/12px 12px;border:1px solid var(--borda);border-radius:8px;padding:6px;text-align:center}
+.previa canvas{max-width:100%;max-height:200px;display:block;margin:0 auto}
+.previa small{color:var(--cinza);font-size:11px}
+.grande{padding:12px!important;font-size:15px!important}
+.nota{font-size:11.5px;color:var(--cinza);margin:0}
+.carregando{position:absolute;inset:0;background:#fffc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:14px;z-index:3;text-align:center;padding:20px}
+.carregando[hidden]{display:none}
+.giro{width:34px;height:34px;border:4px solid #ddd;border-top-color:var(--verm);border-radius:50%;animation:g 1s linear infinite}
+@keyframes g{to{transform:rotate(360deg)}}
+.aviso{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:12px 20px;border-radius:10px;z-index:40;font-size:14px;max-width:90vw}
+.aviso[hidden]{display:none}
+@media (max-width:860px){.ed-corpo{flex-direction:column;overflow-y:auto}.ed-lado{width:auto;border-left:0;border-top:1px solid var(--borda)}.ed-palco{min-height:420px}.caixa{height:100%}}
+.ed-sub button.prim,.ed-lado button.prim{background:var(--verm);border-color:var(--verm);color:#fff;font-weight:600}
