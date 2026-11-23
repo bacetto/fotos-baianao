@@ -34,6 +34,9 @@ jobs:
         run: |
           mkdir -p _site/data
           cp index.html app.js estilo.css _site/
+          V=${GITHUB_SHA::8}
+          sed -i "s#app.js\"#app.js?v=$V\"#; s#estilo.css\"#estilo.css?v=$V\"#" _site/index.html
+          grep -o 'app.js?v=[a-z0-9]*' _site/index.html
           cp data/site.json _site/data/
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v4
