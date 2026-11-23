@@ -24,8 +24,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Buscar banners e selos do site
@@ -36,7 +36,7 @@ jobs:
           cp index.html app.js estilo.css _site/
           cp data/site.json _site/data/
           touch _site/.nojekyll
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
       - id: deploy

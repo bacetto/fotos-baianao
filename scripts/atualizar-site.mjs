@@ -68,7 +68,7 @@ function dimensoes(b) {
   return null;
 }
 
-const lista = [...achados.keys()].filter((n) => n && !deProduto.has(n) && !/\.svg$/i.test(n)).slice(0, 600);
+const lista = [...achados.keys()].filter((n) => n && !deProduto.has(n) && !/\.svg$/i.test(n)).slice(0, 1500);
 const imagens = [];
 for (let i = 0; i < lista.length; i += 8) {
   await Promise.all(

@@ -485,7 +485,7 @@ function carregarOpenCV() {
       s.onload = () => {
         const ini = Date.now();
         const esperar = () => {
-          if (window.cv && window.cv.Mat && window.cv.inpaint) return ok(window.cv);
+          if (window.cv && window.cv.Mat && window.cv.inpaint) return ok(true); // não passar o cv: ele é "thenable" e trava a Promise
           if (Date.now() - ini > 90000) return erro(new Error("A ferramenta de apagar demorou demais pra carregar."));
           setTimeout(esperar, 150);
         };
@@ -506,7 +506,8 @@ $("#ed-aplicar-apagar").onclick = async () => {
   if (!tem) return aviso("Pinte por cima do que quer apagar primeiro.");
   carregando("Apagando… (na primeira vez demora uns segundos pra carregar a ferramenta)");
   try {
-    const cv = await carregarOpenCV();
+    await carregarOpenCV();
+    const cv = window.cv;
     const w = E.base.width, h = E.base.height;
     const rgba = cv.matFromImageData(E.base.getContext("2d").getImageData(0, 0, w, h));
     const rgb = new cv.Mat();
