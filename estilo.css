@@ -69,3 +69,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .aviso[hidden]{display:none}
 @media (max-width:860px){.ed-corpo{flex-direction:column;overflow-y:auto}.ed-lado{width:auto;border-left:0;border-top:1px solid var(--borda)}.ed-palco{min-height:420px}.caixa{height:100%}}
 .ed-sub button.prim,.ed-lado button.prim{background:var(--verm);border-color:var(--verm);color:#fff;font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--borda);border-radius:8px;overflow:hidden}
+.seg button{border:0!important;border-radius:0!important}
+.seg button.ativa{background:var(--txt)!important;color:#fff}
+.chk{display:inline-flex;align-items:center;gap:4px;font-size:12.5px}
+#ed-fantasma{position:absolute;opacity:.28;pointer-events:none;filter:grayscale(.3)}

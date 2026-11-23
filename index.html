@@ -57,6 +57,7 @@
           <button data-modo="recortar">✂ Recortar área</button>
           <button data-modo="apagar">🩹 Apagar marca/logo</button>
           <button id="ed-fundo">🪄 Remover fundo</button>
+          <button data-modo="retocar">🖌 Retocar recorte</button>
           <button id="ed-desfazer" disabled>↶ Desfazer</button>
           <button id="ed-original">⟲ Voltar ao original</button>
         </div>
@@ -70,6 +71,12 @@
           Pincel <input id="ed-pincel" type="range" min="5" max="120" value="30">
           <button id="ed-aplicar-apagar" class="prim">Apagar área pintada</button>
           <button id="ed-limpar-mask">Limpar pintura</button>
+        </div>
+        <div id="ed-retocar-ctl" class="ed-sub" hidden>
+          <span class="seg"><button id="rt-restaurar" class="ativa">＋ Restaurar parte</button><button id="rt-apagar">－ Apagar sobra</button></span>
+          Pincel <input id="rt-pincel" type="range" min="4" max="150" value="30">
+          Suavidade <input id="rt-suave" type="range" min="0" max="100" value="35">
+          <label class="chk"><input id="rt-fantasma" type="checkbox" checked> Mostrar a foto original por baixo</label>
         </div>
         <div id="ed-recortar-ctl" class="ed-sub" hidden>
           Arraste na imagem pra marcar a área.

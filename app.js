@@ -267,7 +267,12 @@ $("#busca-site").addEventListener("input", filtrarSite);
 $("#tam-site").onchange = filtrarSite;
 
 /* ===================== Editor ===================== */
+const fantasma = document.createElement("canvas");
+fantasma.id = "ed-fantasma";
+fantasma.hidden = true;
+$("#ed-area").insertBefore(fantasma, $("#ed-base"));
 const E = {
+  ref: null,
   base: $("#ed-base"),
   over: $("#ed-over"),
   previa: $("#ed-previa"),
@@ -302,6 +307,7 @@ async function abrirEditor(url, nome, info) {
   $("#ed-info").textContent = info || "";
   E.nome = slug(nome);
   E.hist = [];
+  E.ref = null;
   setModo("ver");
   carregando("Abrindo a foto em alta…");
   try {
@@ -355,7 +361,7 @@ function ajustarTamanhoTela() {
   const esc = Math.min((area.width - 16) / E.base.width, (area.height - 16) / E.base.height, 1.5);
   const w = Math.round(E.base.width * esc) + "px";
   const h = Math.round(E.base.height * esc) + "px";
-  for (const c of [E.base, E.over]) {
+  for (const c of [E.base, E.over, fantasma]) {
     c.style.width = w;
     c.style.height = h;
   }
@@ -368,19 +374,32 @@ function desfazer() {
   definirBase(c, false);
 }
 $("#ed-desfazer").onclick = desfazer;
-$("#ed-original").onclick = () => E.original && definirBase(clonar(E.original));
+$("#ed-original").onclick = () => {
+  if (!E.original) return;
+  E.ref = null;
+  definirBase(clonar(E.original));
+};
 
 function setModo(m) {
   E.modo = m;
   $$(".ed-ferr [data-modo]").forEach((b) => b.classList.toggle("ativa", b.dataset.modo === m));
   $("#ed-apagar-ctl").hidden = m !== "apagar";
   $("#ed-recortar-ctl").hidden = m !== "recortar";
+  $("#ed-retocar-ctl").hidden = m !== "retocar";
+  if (m === "retocar" && !referencia()) {
+    aviso("Use “Remover fundo” primeiro; depois retoque aqui.");
+    m = E.modo = "ver";
+    $("#ed-retocar-ctl").hidden = true;
+    $$(".ed-ferr [data-modo]").forEach((b) => b.classList.toggle("ativa", b.dataset.modo === "ver"));
+  }
+  atualizarFantasma();
   E.over.style.cursor = m === "ver" ? "default" : "crosshair";
   E.over.style.pointerEvents = m === "ver" ? "none" : "auto";
   $("#ed-dica").textContent = {
     ver: "Escolha o formato ao lado e baixe. Use as ferramentas acima pra recortar, apagar logo/marca ou tirar o fundo.",
     apagar: "Pinte por cima da marca, logo, selo ou texto que quer apagar. Depois clique em “Apagar área pintada”.",
     recortar: "Arraste um retângulo em volta do elemento que quer pegar (ex.: o produto de um banner).",
+    retocar: "Restaurar: pinte onde a IA cortou parte do produto (vidro, pés, detalhes). Apagar: pinte a sobra de fundo que ficou. Ctrl+Z desfaz.",
   }[m];
   limparOver();
 }
@@ -405,15 +424,107 @@ E.over.addEventListener("pointerdown", (e) => {
   const p = ponto(e);
   arrastando = { ini: p, ult: p };
   if (E.modo === "apagar") pintar(p, p);
+  if (E.modo === "retocar") {
+    E.hist.push(clonar(E.base));
+    if (E.hist.length > 12) E.hist.shift();
+    $("#ed-desfazer").disabled = false;
+    retocar(p, p);
+  }
 });
 E.over.addEventListener("pointermove", (e) => {
   if (!arrastando) return;
   const p = ponto(e);
   if (E.modo === "apagar") pintar(arrastando.ult, p);
   if (E.modo === "recortar") desenharSelecao(arrastando.ini, p);
+  if (E.modo === "retocar") retocar(arrastando.ult, p);
   arrastando.ult = p;
 });
-E.over.addEventListener("pointerup", () => (arrastando = null));
+E.over.addEventListener("pointerup", () => {
+  if (arrastando && E.modo === "retocar") renderPrevia();
+  arrastando = null;
+});
+E.over.addEventListener("pointermove", (e) => {
+  if (E.modo !== "retocar") return;
+  const p = ponto(e);
+  const g = E.over.getContext("2d");
+  g.clearRect(0, 0, E.over.width, E.over.height);
+  g.strokeStyle = rtModo === "restaurar" ? "#16a34a" : "#d6111a";
+  g.lineWidth = 2 * p.esc;
+  g.beginPath();
+  g.arc(p.x, p.y, (+$("#rt-pincel").value * p.esc) / 2, 0, Math.PI * 2);
+  g.stroke();
+});
+E.over.addEventListener("pointerleave", () => E.modo === "retocar" && E.over.getContext("2d").clearRect(0, 0, E.over.width, E.over.height));
+
+/* ---------- Retocar recorte (restaurar / apagar com pincel suave) ---------- */
+let rtModo = "restaurar";
+$("#rt-restaurar").onclick = () => { rtModo = "restaurar"; $("#rt-restaurar").classList.add("ativa"); $("#rt-apagar").classList.remove("ativa"); };
+$("#rt-apagar").onclick = () => { rtModo = "apagar"; $("#rt-apagar").classList.add("ativa"); $("#rt-restaurar").classList.remove("ativa"); };
+$("#rt-fantasma").onchange = atualizarFantasma;
+
+function referencia() {
+  if (E.ref && E.ref.width === E.base.width && E.ref.height === E.base.height) return E.ref;
+  if (E.original && E.original.width === E.base.width && E.original.height === E.base.height) return E.original;
+  return null;
+}
+function atualizarFantasma() {
+  const ref = referencia();
+  const mostrar = E.modo === "retocar" && ref && $("#rt-fantasma").checked;
+  fantasma.hidden = !mostrar;
+  if (mostrar) {
+    fantasma.width = ref.width;
+    fantasma.height = ref.height;
+    fantasma.getContext("2d").drawImage(ref, 0, 0);
+    ajustarTamanhoTela();
+  }
+}
+
+let pincelCache = null;
+function carimbo(raio, suave) {
+  const chave = raio + "|" + suave;
+  if (pincelCache?.chave === chave) return pincelCache.c;
+  const d = Math.ceil(raio * 2) + 2;
+  const c = novoCanvas(d, d);
+  const g = c.getContext("2d");
+  const grad = g.createRadialGradient(d / 2, d / 2, 0, d / 2, d / 2, raio);
+  const duro = Math.max(0, Math.min(0.99, 1 - suave / 100));
+  grad.addColorStop(0, "rgba(0,0,0,1)");
+  grad.addColorStop(duro, "rgba(0,0,0,1)");
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, d, d);
+  pincelCache = { chave, c };
+  return c;
+}
+
+function retocar(a, b) {
+  const ref = referencia();
+  if (!ref) return;
+  const raio = Math.max(1, (+$("#rt-pincel").value * b.esc) / 2);
+  const pin = carimbo(raio, +$("#rt-suave").value);
+  const dist = Math.hypot(b.x - a.x, b.y - a.y);
+  const passos = Math.max(1, Math.ceil(dist / Math.max(1, raio / 4)));
+  // máscara do traço
+  const x0 = Math.floor(Math.min(a.x, b.x) - raio - 2), y0 = Math.floor(Math.min(a.y, b.y) - raio - 2);
+  const w = Math.ceil(Math.abs(b.x - a.x) + raio * 2 + 4), h = Math.ceil(Math.abs(b.y - a.y) + raio * 2 + 4);
+  const m = novoCanvas(w, h);
+  const gm = m.getContext("2d");
+  for (let i = 0; i <= passos; i++) {
+    const t = i / passos;
+    gm.drawImage(pin, a.x + (b.x - a.x) * t - x0 - pin.width / 2, a.y + (b.y - a.y) * t - y0 - pin.height / 2);
+  }
+  const g = E.base.getContext("2d");
+  if (rtModo === "apagar") {
+    g.save();
+    g.globalCompositeOperation = "destination-out";
+    g.drawImage(m, x0, y0);
+    g.restore();
+  } else {
+    gm.globalCompositeOperation = "source-in";
+    gm.drawImage(ref, -x0, -y0);
+    g.drawImage(m, x0, y0);
+  }
+}
 
 function pintar(a, b) {
   const raio = (+$("#ed-pincel").value * b.esc) / 2;
@@ -459,6 +570,12 @@ function recortar() {
   const { x, y, w, h } = E.sel;
   const c = novoCanvas(w, h);
   c.getContext("2d").drawImage(E.base, x, y, w, h, 0, 0, w, h);
+  const ref = referencia();
+  if (ref) {
+    const r = novoCanvas(w, h);
+    r.getContext("2d").drawImage(ref, x, y, w, h, 0, 0, w, h);
+    E.ref = r;
+  }
   definirBase(c);
   return true;
 }
@@ -562,26 +679,70 @@ async function carregarRemovedor() {
   }
   throw new Error("Não consegui carregar o removedor de fundo.");
 }
-async function removerFundo() {
-  carregando("Removendo o fundo… (na primeira vez baixa a IA, pode levar até 1 minuto)");
+const SERVIDOR_IA = (() => { try { return localStorage.getItem("fb-ia") || ""; } catch { return ""; } })() || ""; // servidor de recorte (BiRefNet)
+
+async function mascaraServidor(blob) {
+  const ctl = new AbortController();
+  const limite = setTimeout(() => ctl.abort(), 180000);
+  const lento = setTimeout(() => carregando("Ligando o servidor de recorte (fica parado quando ninguém usa, leva ~1 min)…"), 8000);
   try {
-    const lib = await carregarRemovedor();
-    const blob = await new Promise((ok) => E.base.toBlob(ok, "image/png"));
-    const res = await lib.removeBackground(blob, {
-      model: "isnet_fp16",
-      output: { format: "image/png", quality: 1 },
-      progress: (chave, atual, total) => {
-        if (chave.includes("fetch") && total) carregando(`Baixando a IA de recorte… ${Math.round((atual / total) * 100)}%`);
-        else if (chave.includes("compute")) carregando("Recortando o produto…");
-      },
-    });
-    const bmp = await createImageBitmap(res);
-    const c = novoCanvas(bmp.width, bmp.height);
-    c.getContext("2d").drawImage(bmp, 0, 0);
+    const fd = new FormData();
+    fd.append("foto", blob, "foto.png");
+    const r = await fetch(SERVIDOR_IA + "/mascara", { method: "POST", body: fd, signal: ctl.signal });
+    if (!r.ok) throw new Error("servidor " + r.status);
+    return await createImageBitmap(await r.blob());
+  } finally {
+    clearTimeout(limite);
+    clearTimeout(lento);
+  }
+}
+
+async function mascaraNavegador(blob) {
+  const lib = await carregarRemovedor();
+  const res = await lib.removeBackground(blob, {
+    model: "isnet",
+    output: { format: "image/png", quality: 1, type: "mask" },
+    progress: (chave, atual, total) => {
+      if (chave.includes("fetch") && total) carregando(`Baixando a IA de recorte… ${Math.round((atual / total) * 100)}%`);
+      else if (chave.includes("compute")) carregando("Recortando o produto…");
+    },
+  });
+  return createImageBitmap(res);
+}
+
+async function removerFundo() {
+  carregando("Recortando o produto com IA…");
+  try {
+    const fonte = clonar(E.base);
+    const blob = await new Promise((ok) => fonte.toBlob(ok, "image/png"));
+    let mask = null;
+    if (SERVIDOR_IA) {
+      try {
+        mask = await mascaraServidor(blob);
+      } catch (e) {
+        console.warn("servidor de recorte falhou", e);
+      }
+    }
+    if (!mask) mask = await mascaraNavegador(blob);
+    // aplica a máscara (em escala de cinza) como transparência
+    const w = fonte.width, h = fonte.height;
+    const mc = novoCanvas(w, h);
+    const gm = mc.getContext("2d", { willReadFrequently: true });
+    gm.drawImage(mask, 0, 0, w, h);
+    const md = gm.getImageData(0, 0, w, h).data;
+    const c = clonar(fonte);
+    const g = c.getContext("2d", { willReadFrequently: true });
+    const d = g.getImageData(0, 0, w, h);
+    for (let i = 0; i < md.length; i += 4) {
+      const a = md[i + 3] < 255 ? (md[i] * md[i + 3]) / 255 : md[i]; // máscara em cinza (ou alfa)
+      d.data[i + 3] = Math.round((d.data[i + 3] * a) / 255);
+    }
+    g.putImageData(d, 0, 0);
+    E.ref = fonte;
     definirBase(c);
     $("#ed-fundo-tipo").value = "transp";
     renderPrevia();
-    aviso("Fundo removido. Escolha o fundo (transparente, branco ou cor) ao lado.");
+    aviso("Fundo removido. Se faltou ou sobrou algum pedaço, use “Retocar recorte”.", 5000);
   } catch (e) {
     aviso("Erro ao remover o fundo: " + (e.message || e), 6000);
   } finally {
