@@ -1,7 +1,7 @@
 // Fotos Baianão — tudo roda no navegador, direto do catálogo público do site.
 const LOJA = "https://baianao.com.br";
 const CDN_ARQ = "https://cdn.shopify.com/s/files/1/0736/4886/5530/files/";
-const CACHE_KEY = "fb-catalogo-v1";
+const CACHE_KEY = "fb-catalogo-v2";
 const CACHE_MIN = 30;
 const POR_PAGINA = 48;
 
@@ -72,6 +72,8 @@ function enxugar(p) {
     tg: (p.tags || []).join(" "),
     p: precos.length ? Math.min(...precos) : null,
     img: (p.images || []).map((i) => i.src),
+    // códigos (SKU) de cada cor/variação, com a foto daquela variação quando existir
+    cod: (p.variants || []).filter((v) => v.sku).map((v) => ({ s: String(v.sku).trim(), c: v.title && v.title !== "Default Title" ? v.title : "", f: v.featured_image?.src || "" })),
   };
 }
 
@@ -123,15 +125,35 @@ function prepararFiltros() {
   filtrar();
 }
 
+const semZeros = (s) => norm(s).replace(/^0+(?=\d)/, "");
+function achaCodigo(p, termo) {
+  const t = semZeros(termo);
+  return (p.cod || []).find((c) => norm(c.s) === norm(termo) || semZeros(c.s) === t);
+}
 function filtrar() {
   const termos = norm($("#busca").value).split(/\s+/).filter(Boolean);
+  // busca por código: se todos os termos forem códigos, mostra só os produtos com esses códigos
+  const porCodigo = termos.length && produtos.some((p) => achaCodigo(p, termos[0]));
+  if (porCodigo) {
+    filtrados = produtos
+      .map((p) => {
+        const c = termos.map((t) => achaCodigo(p, t)).find(Boolean);
+        return c ? { ...p, achado: c } : null;
+      })
+      .filter(Boolean);
+    $("#status").textContent = `${filtrados.length} produto(s) com esse código · clique numa foto pra baixar ou editar`;
+    $("#lista").innerHTML = "";
+    mostrados = 0;
+    mostrarMais();
+    return;
+  }
   const tipo = $("#tipo").value;
   const marca = $("#marca").value;
   filtrados = produtos.filter((p) => {
     if (tipo && p.ty !== tipo) return false;
     if (marca && p.v !== marca) return false;
     if (!termos.length) return true;
-    const alvo = norm(`${p.t} ${p.v} ${p.ty} ${p.tg} ${p.h}`);
+    const alvo = norm(`${p.t} ${p.v} ${p.ty} ${p.tg} ${p.h} ${(p.cod || []).map((c) => c.s + " " + c.c).join(" ")}`);
     return termos.every((t) => alvo.includes(t));
   });
   $("#status").textContent = `${filtrados.length.toLocaleString("pt-BR")} produto(s)${termos.length || tipo || marca ? " encontrados" : " no site"} · clique numa foto pra baixar ou editar`;
@@ -153,9 +175,25 @@ function cardProduto(p) {
   d.className = "card";
   d.innerHTML = `
     <div class="capa"><img loading="lazy" alt=""><span class="qtd">${p.img.length} foto${p.img.length > 1 ? "s" : ""}</span></div>
-    <div class="info"><b></b><small></small>${p.p ? `<div class="preco">${brl(p.p)}</div>` : ""}</div>
+    <div class="info"><b></b><small></small><div class="cods"></div>${p.p ? `<div class="preco">${brl(p.p)}</div>` : ""}</div>
     <div class="miniaturas"></div>
     <div class="acoes"><button class="prim" data-a="zip">⬇ Baixar todas</button><button data-a="site">Ver no site</button></div>`;
+  // se buscou por código, a capa mostra a foto daquela cor
+  if (p.achado?.f && p.img.includes(p.achado.f)) p = { ...p, img: [p.achado.f, ...p.img.filter((x) => x !== p.achado.f)] };
+  const cods = $(".cods", d);
+  (p.cod || []).forEach((c) => {
+    const b = document.createElement("span");
+    b.className = "cod" + (p.achado && p.achado.s === c.s ? " ativo" : "");
+    b.textContent = c.c ? `${c.s} · ${c.c}` : c.s;
+    b.title = "Clique pra copiar o código";
+    b.onclick = (ev) => {
+      ev.stopPropagation();
+      navigator.clipboard?.writeText(c.s);
+      aviso("Código " + c.s + " copiado");
+    };
+    if (c.f) b.ondblclick = () => abrirEditor(c.f, `${p.t} - ${c.c || c.s}`, `Código ${c.s}`);
+    cods.appendChild(b);
+  });
   $(".capa img", d).src = tamanho(p.img[0], 500);
   $(".info b", d).textContent = p.t;
   $(".info small", d).textContent = [p.v, p.ty].filter(Boolean).join(" · ");

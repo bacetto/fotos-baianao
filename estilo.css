@@ -74,3 +74,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .seg button.ativa{background:var(--txt)!important;color:#fff}
 .chk{display:inline-flex;align-items:center;gap:4px;font-size:12.5px}
 #ed-fantasma{position:absolute;opacity:.28;pointer-events:none;filter:grayscale(.3)}
+.cods{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.cod{font-size:11px;background:#f1f2f4;border:1px solid var(--borda);border-radius:6px;padding:2px 6px;cursor:pointer;color:#444;font-variant-numeric:tabular-nums}
+.cod:hover{border-color:var(--verm)}
+.cod.ativo{background:#fff4c2;border-color:#e0b400;color:#000;font-weight:600}
